@@ -16,11 +16,7 @@ from sklearn.kernel_ridge import KernelRidge
 from sklearn.svm import SVR
 from sklearn import preprocessing
 from sklearn.linear_model import Ridge
-
-##NEED TO DEAL WITH ZERO INFLATION
-##HURDLE MODEL?
-## BINNING VARIABLES?
-##DUMMY FLAG VARIABLES?
+from sklearn.preprocessing import PolynomialFeatures
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -280,34 +276,54 @@ test['TotalBaths'] = test['BsmtFullBath'] + test['FullBath'] + 0.5*(test['BsmtHa
 data['TotalSF'] = data['TotalBsmtSF'] + data['GrLivArea']
 test['TotalSF'] = test['TotalBsmtSF'] + test['GrLivArea']
 
-data = data.replace({'MoSold': {1: 'Cold', 2: 'Cold',3: 'Cold',
-4: 'Warm',5: 'Warm',6: 'Hot',7: 'Hot',8: 'Hot',9: 'Warm',10: 'Warm',
-11: 'Cold',12: 'Cold'}})
+data = data.drop(columns=['BsmtFullBath', 'FullBath', 'BsmtHalfBath', 'HalfBath'])
+test = test.drop(columns=['BsmtFullBath', 'FullBath', 'BsmtHalfBath', 'HalfBath'])
 
-test = test.replace({'MoSold': {1: 'Cold', 2: 'Cold',3: 'Cold',
-4: 'Warm',5: 'Warm',6: 'Hot',7: 'Hot',8: 'Hot',9: 'Warm',10: 'Warm',
-11: 'Cold',12: 'Cold'}})
+print(data.groupby(['MoSold'])['SalePrice'].mean())
 
-data = data.replace({'MSSubClass': {20: 'SubClass_20', 30: 'SubClass_30',40: 'SubClass_40',
-45: 'SubClass_45',50: 'SubClass_50',60: 'SubClass_60',70: 'SubClass_70',
-75: 'SubClass_75',80: 'SubClass_80',85: 'SubClass_85',90: 'SubClass_90',
-120: 'SubClass_120',150: 'SubClass_150',160: 'SubClass_160',180: 'SubClass_180',
-190: 'SubClass_190'}})
 
-test = test.replace({'MSSubClass': {20: 'SubClass_20', 30: 'SubClass_30',40: 'SubClass_40',
-45: 'SubClass_45',50: 'SubClass_50',60: 'SubClass_60',70: 'SubClass_70',
-75: 'SubClass_75',80: 'SubClass_80',85: 'SubClass_85',90: 'SubClass_90',
-120: 'SubClass_120',150: 'SubClass_150',160: 'SubClass_160',180: 'SubClass_180',
-190: 'SubClass_190'}})
+data = data.replace({'MoSold': {1: 'Q1', 2: 'Q1',3: 'Q1',
+4: 'Q2',5: 'Q2',6: 'Q2',7: 'Q3',8: 'Q3',9: 'Q3',10: 'Q4',
+11: 'Q4',12: 'Q4'}})
+
+print(data.groupby(['MoSold'])['SalePrice'].mean())
+
+test = test.replace({'MoSold': {1: 'Q1', 2: 'Q1',3: 'Q1',
+4: 'Q2',5: 'Q2',6: 'Q2',7: 'Q3',8: 'Q3',9: 'Q3',10: 'Q4',
+11: 'Q4',12: 'Q4'}})
+
+
+data = data.replace({'MSSubClass': {20: 'class20', 30: 'class30',40: 'class40',
+45: 'class45',50: 'class50',60: 'class60',70: 'class70',
+75: 'class75',80: 'class80',85: 'class85',90: 'class90',
+120: 'class120',150: 'class150',160: 'class160',180: 'class180',
+190: 'class190'}})
+
+test = test.replace({'MSSubClass': {20: 'class20', 30: 'class30',40: 'class40',
+45: 'class45',50: 'class50',60: 'class60',70: 'class70',
+75: 'class75',80: 'class80',85: 'class85',90: 'class90',
+120: 'class120',150: 'class150',160: 'class160',180: 'class180',
+190: 'class190'}})
 
 data['AgeSold'] = data['YrSold'] - data['YearBuilt']
 test['AgeSold'] = test['YrSold'] - test['YearBuilt']
 
+data['Remodel'] = data['YearRemodAdd'] - data['YearBuilt']
+test['Remodel'] = test['YearRemodAdd'] - data['YearBuilt']
+
+data.loc[data['Remodel'] > 0, 'Remodel'] = 'Yes'
+data.loc[data['Remodel'] == 0, 'Remodel'] = 'No'
+test.loc[test['Remodel'] > 0, 'Remodel'] = 'Yes'
+test.loc[test['Remodel'] == 0, 'Remodel'] = 'No'
+
 data.loc[data['AgeSold'] == -1, 'AgeSold'] = 0
 test.loc[test['AgeSold'] == -1, 'AgeSold'] = 0
 
-data = data.drop(columns=['YrSold', 'YearBuilt'])
-test = test.drop(columns=['YrSold', 'YearBuilt'])
+data['YrSold'] = data.YrSold.astype(str)
+test['YrSold'] = test.YrSold.astype(str)
+
+data = data.drop(columns=['YearBuilt', 'YearRemodAdd'])
+test = test.drop(columns=['YearBuilt', 'YearRemodAdd'])
 #-0.01293957945616051 AgeSold addition
 """
 f, ax = plt.subplots(2, 2, figsize=(100,50))
@@ -316,6 +332,12 @@ ax[0, 1].scatter(data['YearBuilt'], data['SalePrice'])
 ax[1, 1].scatter(data['YrSold'], data['SalePrice'])
 plt.show()
 """
+
+#Add interaction terms
+numeric_data = data.select_dtypes(include=[np.number])
+poly = PolynomialFeatures(interaction_only=True,include_bias = False)
+numeric_data = poly.fit_transform(numeric_data)
+print(numeric_data.columns)
 
 #Add quadratic terms to correlated numeric features
 numeric_data = data.select_dtypes(include=[np.number])
@@ -392,7 +414,7 @@ for col in zero_dummy_cols:
 
 cat_data = data.select_dtypes(include=['object', 'category'])
 cat_data['SalePrice'] = data['SalePrice'].copy()
-print(cat_data.head())
+
 
 """
 f, ax = plt.subplots(7, 7, figsize=(100,50))
