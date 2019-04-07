@@ -9,7 +9,7 @@ By comparing standardized elastic net coefficients, the most important categoric
 The RMLSE achieved by the top performing Elastic Net model is 0.11501, placing it in the top 7% of scores as of January 2019.
 
 ## Notebook
-* [Notebook](https://github.com/tcwou/House-Prices-Kaggle/blob/master/Kaggle%20Housing%20Project%20Notebook.ipynb)
+* [Notebook](https://nbviewer.jupyter.org/github/tcwou/House-Prices-Kaggle/blob/master/Kaggle%20Housing%20Project%20Notebook.ipynb)
 
 ### Methods Used
 * Machine Learning
